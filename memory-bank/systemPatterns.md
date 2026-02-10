@@ -1,17 +1,52 @@
 # System Patterns
 
 Architecture overview
-- Frontend-only SPA using React + TypeScript, built with Vite.
+- Frontend-only SPA using React + TypeScript, built with Vite
+- Single-component architecture with all state in SquareScheduleMaker
 
 Key components
-- `SquareScheduleMaker`: main editing surface.
-- `App`: application root and routing (if added later).
+- `SquareScheduleMaker.tsx`: monolithic component handling all logic
+- `App.tsx`: minimal wrapper, just renders SquareScheduleMaker
+- `main.tsx`: entry point with CSS imports
 
-Design patterns
-- Component-first design: small pure components, lift state when needed.
-- Simple persistence: serialize editor state to JSON for localStorage and export.
-- Export pipeline: render schedule to SVG/canvas then export as PNG/PDF.
+State management
+- All state kept in SquareScheduleMaker via useState hooks
+- No external state libraries (Redux, Zustand, etc.)
+- LocalStorage sync via useEffect hooks
+- Profile-based organization: each profile contains courses + classroomLegend
+
+Data structures
+```typescript
+interface Course {
+  id, name, instructor, classroom, description,
+  dayIndex, startSlotIndex, durationSlots, isRetake
+}
+
+interface ScheduleProfile {
+  id, profileName, courses[], classroomLegend?
+}
+```
+
+Union-merge algorithm
+- Handles overlapping course time blocks
+- Sorts courses by start time, merges overlapping intervals
+- Creates VisualBlocks covering entire 9-slot range
+- Conflicts (multiple courses in same block) displayed with warning
+
+Export pipeline
+- html-to-image library converts DOM to PNG
+- canvasRef points to schedule grid container
+- 2x scale for high-resolution output
+- Theme-aware background color
+
+Theme system
+- CSS variables in App.css with [data-theme="dark"] overrides
+- System preference detection via window.matchMedia
+- User preference stored in localStorage
+- data-theme attribute set on document.documentElement
 
 Critical implementation paths
-- State serialization/deserialization for reliable export/import.
-- Export fidelity: ensure layout scales correctly when printing.
+- LocalStorage persistence on every profiles array change
+- Theme toggle updates both state and DOM attribute
+- Export clones and renders visible schedule grid
+- Inline editing uses stopPropagation to prevent menu close

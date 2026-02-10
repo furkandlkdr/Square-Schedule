@@ -1,20 +1,37 @@
 # Tech Context
 
 Stack
-- Vite + React + TypeScript
-- Browser runtime
+- Vite 7.2.4 + React 19.2.0 + TypeScript 5.9.3
+- Tailwind CSS 4.1.18 (with @tailwindcss/vite plugin)
+- Browser runtime (client-side only)
 
 Dev tools
-- Node.js and npm/yarn for local dev and build.
-- Vite dev server for fast iteration.
+- Node.js with npm/pnpm/yarn
+- Vite dev server with HMR
+- ESLint for code quality
 
-Dependencies (expected)
-- `react`, `react-dom`, `vite`, `typescript`
+Key dependencies
+- `react` 19.2.0, `react-dom` 19.2.0
+- `lucide-react` 0.563.0 (icons)
+- `html-to-image` 1.11.11 (PNG export - supports oklch colors)
+- `tailwindcss` 4.1.18, `@tailwindcss/vite` 4.1.18
+- `typescript` 5.9.3, `@vitejs/plugin-react` 5.1.1
+
+Important notes
+- Tailwind v4 uses oklch colors by default
+- html-to-image chosen over html2canvas for modern CSS color support
+- tailwind.config.ts created for custom configuration
+- App.css imported in main.tsx for dark theme overrides
 
 Constraints
-- Keep bundle small and avoid large runtime dependencies for export.
-- Support modern evergreen browsers.
+- Client-side only (no backend)
+- LocalStorage for all persistence
+- Support modern evergreen browsers (Chrome, Firefox, Safari, Edge)
 
 Local dev commands
-- `npm install`
-- `npm run dev` (or `pnpm`/`yarn` equivalents)
+```bash
+npm install
+npm run dev
+npm run build
+npm run preview
+```
