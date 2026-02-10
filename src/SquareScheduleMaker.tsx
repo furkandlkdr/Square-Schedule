@@ -78,6 +78,10 @@ export default function SquareScheduleMaker() {
     const [showProfileMenu, setShowProfileMenu] = useState(false);
     const [editingProfileId, setEditingProfileId] = useState<string | null>(null);
     const [editingProfileName, setEditingProfileName] = useState('');
+    const [mobileTab, setMobileTab] = useState<'edit' | 'preview'>('edit');
+    const [sidebarTab, setSidebarTab] = useState<'add' | 'list'>('add');
+    const [isMobile, setIsMobile] = useState(false);
+    const [dismissMobileWarning, setDismissMobileWarning] = useState(false);
 
     // Form State
     const [formDay, setFormDay] = useState(0);
@@ -145,6 +149,15 @@ export default function SquareScheduleMaker() {
             setClassroomLegend(activeProfile.classroomLegend || '');
         }
     }, [activeProfileId, profiles]);
+
+    useEffect(() => {
+        const checkMobile = () => {
+            setIsMobile(window.innerWidth < 768);
+        };
+        checkMobile();
+        window.addEventListener('resize', checkMobile);
+        return () => window.removeEventListener('resize', checkMobile);
+    }, []);
 
     const activeProfile = profiles.find(p => p.id === activeProfileId) || profiles[0] || INITIAL_PROFILE;
 
@@ -249,7 +262,7 @@ export default function SquareScheduleMaker() {
             const dataUrl = await toPng(canvasRef.current, {
                 quality: 1,
                 pixelRatio: 2,
-                backgroundColor: theme === 'dark' ? '#071226' : '#ffffff'
+                backgroundColor: theme === 'dark' ? '#334155' : '#ffffff'
             });
             
             const link = document.createElement('a');
@@ -368,11 +381,57 @@ export default function SquareScheduleMaker() {
     // --- Rendering ---
 
     return (
-        <div className="min-h-screen bg-slate-50 text-slate-800 font-sans flex flex-col md:flex-row">
+        <div className="min-h-screen bg-slate-50 text-slate-800 font-sans flex flex-col">
+            
+            {/* Mobile Warning Banner */}
+            {isMobile && !dismissMobileWarning && (
+                <div className="bg-amber-50 border-b border-amber-200 px-4 py-3 flex items-start gap-3 md:hidden">
+                    <div className="text-amber-600 font-semibold text-lg">⚠️</div>
+                    <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-amber-900 mb-2">En iyi deneyim için masaüstü sitesini ziyaret edin!</p>
+                        <p className="text-xs text-amber-800 mb-3">Mobil cihazda sınırlı işlevsellik. Tarayıcınızda "Masaüstü Sitesi" modunu etkinleştirin.</p>
+                        <button
+                            onClick={() => setDismissMobileWarning(true)}
+                            className="text-xs font-semibold text-amber-700 hover:text-amber-900 underline"
+                        >
+                            Kapat
+                        </button>
+                    </div>
+                </div>
+            )}
+            
+            {/* MOBILE TAB NAVIGATION */}
+            <div className="md:hidden sticky top-0 z-20 bg-white border-b border-slate-200 shadow-sm">
+                <div className="flex">
+                    <button
+                        onClick={() => setMobileTab('edit')}
+                        className={`flex-1 py-3 px-4 font-medium text-sm transition-colors ${
+                            mobileTab === 'edit' 
+                                ? 'bg-blue-600 text-white' 
+                                : 'bg-slate-50 text-slate-600 hover:bg-slate-100'
+                        }`}
+                    >
+                        ✏️ Düzenle
+                    </button>
+                    <button
+                        onClick={() => setMobileTab('preview')}
+                        className={`flex-1 py-3 px-4 font-medium text-sm transition-colors ${
+                            mobileTab === 'preview' 
+                                ? 'bg-blue-600 text-white' 
+                                : 'bg-slate-50 text-slate-600 hover:bg-slate-100'
+                        }`}
+                    >
+                        👁️ Önizleme
+                    </button>
+                </div>
+            </div>
 
-            {/* SIDEBAR */}
-            <div className="w-full md:w-80 bg-white border-r border-slate-200 flex flex-col h-auto md:h-screen sticky top-0 md:overflow-y-auto z-10 shadow-lg">
-                <div className="p-5 border-b border-slate-100">
+            <div className="flex-1 flex flex-col md:flex-row overflow-hidden">
+                {/* SIDEBAR */}
+                <div className={`w-full md:w-80 bg-white border-r border-slate-200 flex flex-col md:h-screen md:sticky md:top-0 z-10 shadow-lg overflow-hidden ${
+                    mobileTab === 'preview' ? 'hidden md:flex' : ''
+                }`}>
+                <div className="p-5 border-b border-slate-100 shrink-0">
                     <div className="flex items-center justify-between mb-4">
                         <h1 className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-indigo-600">
                             Ders Programı
@@ -449,9 +508,32 @@ export default function SquareScheduleMaker() {
                     </div>
                 </div>
 
+                {/* Sidebar Tabs - Add Course and Course List */}
+                <div className="flex border-b border-slate-100">
+                    <button
+                        onClick={() => setSidebarTab('add')}
+                        className={`flex-1 py-3 px-4 font-medium text-sm transition-colors ${
+                            sidebarTab === 'add'
+                                ? 'border-b-2 border-blue-600 text-blue-600 bg-blue-50'
+                                : 'text-slate-600 hover:bg-slate-50'
+                        }`}
+                    >
+                        ➕ Ekle
+                    </button>
+                    <button
+                        onClick={() => setSidebarTab('list')}
+                        className={`flex-1 py-3 px-4 font-medium text-sm transition-colors ${
+                            sidebarTab === 'list'
+                                ? 'border-b-2 border-blue-600 text-blue-600 bg-blue-50'
+                                : 'text-slate-600 hover:bg-slate-50'
+                        }`}
+                    >
+                        📚 Dersler ({activeProfile.courses.length})
+                    </button>
+                </div>
+
                 {/* Add Course Form */}
-                <div className="p-5 space-y-4">
-                    <h2 className="text-sm font-semibold text-slate-400 uppercase tracking-wider">Ders Ekle</h2>
+                <div className={`p-5 space-y-4 shrink-0 overflow-y-auto ${sidebarTab === 'add' ? '' : 'hidden'}`}>
                     <form onSubmit={addCourse} className="space-y-3">
                         <div>
                             <input
@@ -538,47 +620,49 @@ export default function SquareScheduleMaker() {
                 </div>
 
                 {/* Course List Wrapper */}
-                <div className="flex-1 overflow-y-auto p-5 border-t border-slate-100">
-                    <div className="flex items-center justify-between mb-2">
-                        <h2 className="text-sm font-semibold text-slate-400 uppercase tracking-wider">Dersler</h2>
-                        <span className="text-xs font-mono text-slate-400">{activeProfile.courses.length} Ders</span>
-                    </div>
-
+                <div className={`flex-1 overflow-y-auto p-5 min-h-0 ${sidebarTab === 'list' ? '' : 'hidden'}`}>
                     <div className="space-y-2">
-                        {activeProfile.courses.map(c => (
-                            <div key={c.id} className="p-3 bg-white border border-slate-200 rounded shadow-sm hover:shadow-md transition-shadow group relative">
-                                <div className="flex justify-between items-start">
-                                    <div>
-                                        <h3 className="font-semibold text-slate-800">{c.name}</h3>
-                                        <p className="text-xs text-slate-500">{DAYS[c.dayIndex]}, {TIME_SLOTS[c.startSlotIndex]}</p>
-                                    </div>
-                                    <button onClick={() => removeCourse(c.id)} className="text-slate-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity">
-                                        <Trash2 className="w-4 h-4" />
-                                    </button>
-                                </div>
-                            </div>
-                        ))}
-                        {activeProfile.courses.length === 0 && (
+                        {activeProfile.courses.length === 0 ? (
                             <div className="text-center py-10 text-slate-400">
                                 <div className="mb-2"><List className="w-8 h-8 mx-auto opacity-20" /></div>
                                 <p className="text-sm">Henüz ders eklenmedi.</p>
                             </div>
+                        ) : (
+                            activeProfile.courses.map(c => (
+                                <div key={c.id} className="p-3 bg-slate-50 border border-slate-200 rounded shadow-sm hover:shadow-md transition-shadow group relative">
+                                    <div className="flex justify-between items-start gap-2">
+                                        <div className="flex-1 min-w-0">
+                                            <h3 className="font-semibold text-slate-800 text-sm">{c.name}</h3>
+                                            <p className="text-xs text-slate-500">{DAYS[c.dayIndex]}, {TIME_SLOTS[c.startSlotIndex]}</p>
+                                            {c.instructor && <p className="text-xs text-slate-600 mt-1 italic">{c.instructor}</p>}
+                                            {c.classroom && <p className="text-xs text-slate-600">{c.classroom}</p>}
+                                            {c.description && <p className="text-xs text-slate-600 mt-1">{c.description}</p>}
+                                            {c.isRetake && <p className="text-xs font-semibold text-amber-600 mt-1">Alttan Ders</p>}
+                                        </div>
+                                        <button onClick={() => removeCourse(c.id)} className="text-slate-300 hover:text-red-500 flex-shrink-0 transition-colors">
+                                            <Trash2 className="w-4 h-4" />
+                                        </button>
+                                    </div>
+                                </div>
+                            ))
                         )}
                     </div>
                 </div>
             </div>
 
             {/* MAIN STAGE */}
-            <div className="flex-1 bg-slate-100 p-4 md:p-10 flex flex-col items-center justify-center overflow-auto">
-                <div className="mb-6 flex gap-4">
-                    <button onClick={exportAsPng} className="px-6 py-2 bg-slate-800 text-white rounded-full shadow-lg hover:bg-slate-900 transition-transform hover:-translate-y-1 flex items-center gap-2 font-medium">
+            <div className={`flex-1 bg-slate-100 p-2 md:p-10 flex flex-col items-center overflow-y-auto ${
+                mobileTab === 'edit' ? 'hidden md:flex' : ''
+            }`}>
+                <div className="mb-2 md:mb-6 flex gap-2 md:gap-4 sticky top-0 z-10 bg-slate-100 py-2">
+                    <button onClick={exportAsPng} className="px-4 md:px-6 py-2 bg-slate-800 text-white rounded-full shadow-lg hover:bg-slate-900 transition-transform hover:-translate-y-1 flex items-center gap-2 font-medium text-sm md:text-base">
                         <Download className="w-4 h-4" /> PNG İndir
                     </button>
                 </div>
 
                 {/* CANVAS CONTAINER - ASPECT RATIO 1/1 */}
                 {/* We use a max-width to ensure it fits screen, but it will maintain square aspect */}
-                <div className="w-full max-w-4xl aspect-square bg-white shadow-2xl relative overflow-hidden flex flex-col" ref={canvasRef} data-export-canvas="true">
+                <div className="w-full max-w-4xl aspect-square bg-white shadow-2xl relative overflow-hidden flex flex-col mb-4" ref={canvasRef} data-export-canvas="true">
 
                     {/* Header Row */}
                     <div className="grid grid-cols-[80px_1fr_1fr_1fr_1fr_1fr] h-12 bg-slate-900 text-white shrink-0">
@@ -673,8 +757,8 @@ export default function SquareScheduleMaker() {
                     </div>
 
                     {/* Footer Legend */}
-                    <div className="h-auto min-h-12 bg-white border-t border-slate-200 flex items-center justify-between px-6 py-3 shrink-0 gap-4">
-                        <div className="flex items-center gap-4 text-xs font-medium text-slate-500">
+                    <div className="h-auto min-h-12 bg-white border-t border-slate-200 flex flex-col md:flex-row items-start md:items-center justify-between px-3 md:px-6 py-3 shrink-0 gap-2 md:gap-4">
+                        <div className="flex flex-wrap items-center gap-2 md:gap-4 text-xs font-medium text-slate-500">
                             <div className="flex items-center gap-1"><div className="w-3 h-3 bg-sky-100 border border-sky-300 rounded"></div> Ders</div>
                             <div className="flex items-center gap-1"><div className="w-3 h-3 bg-amber-100 border border-amber-300 rounded"></div> Alttan</div>
                             <div className="flex items-center gap-1"><div className="w-3 h-3 bg-red-100 border border-red-300 rounded"></div> Çakışma</div>
@@ -688,12 +772,13 @@ export default function SquareScheduleMaker() {
                                 ))}
                             </div>
                         )}
-                        <div className="text-[10px] text-slate-400 font-mono whitespace-nowrap">
-                            Made with ❤️ by Nafair
+                        <div className="text-[10px] text-slate-400 font-mono whitespace-nowrap w-full md:w-auto text-center md:text-right">
+                            Made with ❤️ by <a href="https://furkan.software" target="_blank" rel="noopener noreferrer">Nafair</a>
                         </div>
                     </div>
 
                 </div>
+            </div>
             </div>
         </div>
     );

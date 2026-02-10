@@ -1,4 +1,4 @@
-# 📅 Course Program Maker
+# 📅 Square Schedule
 
 A simple, elegant web app for creating and managing weekly course schedules. Built with React + TypeScript + Vite.
 
@@ -164,27 +164,3 @@ Contributions are welcome! Feel free to:
 ---
 
 **Made with ❤️ by Nafair**
-
-import reactDom from 'eslint-plugin-react-dom'
-
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```

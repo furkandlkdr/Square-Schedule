@@ -1,6 +1,6 @@
 # Project Brief
 
-Project: Course Program Maker
+Project: Square Schedule
 
 Purpose
 - Provide a simple, focused web app to design and export course schedules using a square/grid layout.
