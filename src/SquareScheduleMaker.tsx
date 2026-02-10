@@ -6,9 +6,12 @@ import {
     ChevronDown,
     Monitor,
     List,
-    AlertCircle
+    AlertCircle,
+    Sun,
+    Moon,
+    Edit2
 } from 'lucide-react';
-import html2canvas from 'html2canvas';
+import { toPng } from 'html-to-image';
 
 // --- Constants & Config ---
 
@@ -72,6 +75,8 @@ export default function SquareScheduleMaker() {
     const [profiles, setProfiles] = useState<ScheduleProfile[]>([]);
     const [activeProfileId, setActiveProfileId] = useState<string>('');
     const [showProfileMenu, setShowProfileMenu] = useState(false);
+    const [editingProfileId, setEditingProfileId] = useState<string | null>(null);
+    const [editingProfileName, setEditingProfileName] = useState('');
 
     // Form State
     const [formDay, setFormDay] = useState(0);
@@ -84,6 +89,30 @@ export default function SquareScheduleMaker() {
     const [formIsRetake, setFormIsRetake] = useState(false);
 
     const canvasRef = useRef<HTMLDivElement>(null);
+
+    // Theme: default to user's interface preference unless user has saved a choice
+    const [theme, setTheme] = useState<'light' | 'dark'>(() => {
+        try {
+            const stored = localStorage.getItem('theme');
+            if (stored === 'light' || stored === 'dark') return stored;
+        } catch (e) {}
+        if (typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+            return 'dark';
+        }
+        return 'light';
+    });
+
+    useEffect(() => {
+        try {
+            document.documentElement.setAttribute('data-theme', theme);
+        } catch (e) {}
+    }, [theme]);
+
+    const toggleTheme = () => {
+        const next = theme === 'dark' ? 'light' : 'dark';
+        setTheme(next);
+        try { localStorage.setItem('theme', next); } catch (e) {}
+    };
 
     // --- Effects ---
 
@@ -137,6 +166,28 @@ export default function SquareScheduleMaker() {
         }
     };
 
+    const startEditProfile = (id: string, currentName: string, e: React.MouseEvent) => {
+        e.stopPropagation();
+        setEditingProfileId(id);
+        setEditingProfileName(currentName);
+    };
+
+    const saveProfileName = (id: string) => {
+        if (editingProfileName.trim()) {
+            const updatedProfiles = profiles.map(p =>
+                p.id === id ? { ...p, profileName: editingProfileName.trim() } : p
+            );
+            setProfiles(updatedProfiles);
+        }
+        setEditingProfileId(null);
+        setEditingProfileName('');
+    };
+
+    const cancelEditProfile = () => {
+        setEditingProfileId(null);
+        setEditingProfileName('');
+    };
+
     const addCourse = (e: React.FormEvent) => {
         e.preventDefault();
         if (!formName) return;
@@ -179,18 +230,19 @@ export default function SquareScheduleMaker() {
     const exportAsPng = async () => {
         if (!canvasRef.current) return;
         try {
-            const canvas = await html2canvas(canvasRef.current, {
-                scale: 2, // High resolution
-                useCORS: true,
-                backgroundColor: '#ffffff'
+            const dataUrl = await toPng(canvasRef.current, {
+                quality: 1,
+                pixelRatio: 2,
+                backgroundColor: theme === 'dark' ? '#071226' : '#ffffff'
             });
+            
             const link = document.createElement('a');
             link.download = `${activeProfile.profileName.replace(/\s+/g, '_')}_Schedule.png`;
-            link.href = canvas.toDataURL('image/png');
+            link.href = dataUrl;
             link.click();
         } catch (err) {
             console.error("Export failed", err);
-            alert("Hata oluştu.");
+            alert("Dışa aktarım başarısız. Lütfen tekrar deneyin.");
         }
     };
 
@@ -305,9 +357,14 @@ export default function SquareScheduleMaker() {
             {/* SIDEBAR */}
             <div className="w-full md:w-80 bg-white border-r border-slate-200 flex flex-col h-auto md:h-screen sticky top-0 md:overflow-y-auto z-10 shadow-lg">
                 <div className="p-5 border-b border-slate-100">
-                    <h1 className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-indigo-600 mb-4">
-                        Ders Programı
-                    </h1>
+                    <div className="flex items-center justify-between mb-4">
+                        <h1 className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-indigo-600">
+                            Ders Programı
+                        </h1>
+                        <button onClick={toggleTheme} aria-label="Toggle theme" className="p-2 rounded-md hover:bg-slate-100 transition-colors">
+                            {theme === 'dark' ? <Sun className="w-5 h-5 text-yellow-400" /> : <Moon className="w-5 h-5 text-slate-600" />}
+                        </button>
+                    </div>
 
                     {/* Profile Selector */}
                     <div className="relative">
@@ -327,13 +384,42 @@ export default function SquareScheduleMaker() {
                                 {profiles.map(p => (
                                     <div
                                         key={p.id}
-                                        onClick={() => { setActiveProfileId(p.id); setShowProfileMenu(false); }}
-                                        className={`p-3 flex items-center justify-between cursor-pointer hover:bg-slate-50 ${activeProfileId === p.id ? 'bg-blue-50 text-blue-700' : ''}`}
+                                        onClick={() => { 
+                                            if (editingProfileId !== p.id) {
+                                                setActiveProfileId(p.id); 
+                                                setShowProfileMenu(false); 
+                                            }
+                                        }}
+                                        className={`p-3 flex items-center justify-between gap-2 cursor-pointer hover:bg-slate-50 ${activeProfileId === p.id ? 'bg-blue-50 text-blue-700' : ''}`}
                                     >
-                                        <span>{p.profileName}</span>
-                                        <button onClick={(e) => deleteProfile(p.id, e)} className="text-slate-400 hover:text-red-500">
-                                            <Trash2 className="w-4 h-4" />
-                                        </button>
+                                        {editingProfileId === p.id ? (
+                                            <input
+                                                type="text"
+                                                value={editingProfileName}
+                                                onChange={(e) => setEditingProfileName(e.target.value)}
+                                                onBlur={() => saveProfileName(p.id)}
+                                                onKeyDown={(e) => {
+                                                    if (e.key === 'Enter') saveProfileName(p.id);
+                                                    if (e.key === 'Escape') cancelEditProfile();
+                                                }}
+                                                onClick={(e) => e.stopPropagation()}
+                                                autoFocus
+                                                className="flex-1 px-2 py-1 border border-blue-400 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                            />
+                                        ) : (
+                                            <span className="flex-1">{p.profileName}</span>
+                                        )}
+                                        <div className="flex items-center gap-1">
+                                            <button 
+                                                onClick={(e) => startEditProfile(p.id, p.profileName, e)} 
+                                                className="text-slate-400 hover:text-blue-500"
+                                            >
+                                                <Edit2 className="w-4 h-4" />
+                                            </button>
+                                            <button onClick={(e) => deleteProfile(p.id, e)} className="text-slate-400 hover:text-red-500">
+                                                <Trash2 className="w-4 h-4" />
+                                            </button>
+                                        </div>
                                     </div>
                                 ))}
                                 <button
@@ -400,6 +486,12 @@ export default function SquareScheduleMaker() {
                             value={formClassroom} onChange={e => setFormClassroom(e.target.value)}
                         />
 
+                        <input
+                            placeholder="Açıklama (Opsiyonel)"
+                            className="w-full p-2 bg-slate-50 border border-slate-200 rounded"
+                            value={formDesc} onChange={e => setFormDesc(e.target.value)}
+                        />
+
                         <label className="flex items-center gap-2 p-2 border border-slate-200 rounded cursor-pointer hover:bg-slate-50">
                             <input
                                 type="checkbox"
@@ -457,7 +549,7 @@ export default function SquareScheduleMaker() {
 
                 {/* CANVAS CONTAINER - ASPECT RATIO 1/1 */}
                 {/* We use a max-width to ensure it fits screen, but it will maintain square aspect */}
-                <div className="w-full max-w-4xl aspect-square bg-white shadow-2xl relative overflow-hidden flex flex-col" ref={canvasRef}>
+                <div className="w-full max-w-4xl aspect-square bg-white shadow-2xl relative overflow-hidden flex flex-col" ref={canvasRef} data-export-canvas="true">
 
                     {/* Header Row */}
                     <div className="grid grid-cols-[80px_1fr_1fr_1fr_1fr_1fr] h-12 bg-slate-900 text-white shrink-0">
@@ -480,7 +572,7 @@ export default function SquareScheduleMaker() {
                             {TIME_SLOTS.map((slot, i) => {
                                 const isLunch = i === 4;
                                 return (
-                                    <div key={i} className={`flex-1 flex items-center justify-center border-b border-slate-200 text-[9px] md:text-[10px] font-medium text-slate-500 p-1 text-center ${isLunch ? 'bg-orange-50 text-orange-600 font-bold' : ''}`}>
+                                    <div key={i} className={`flex-1 flex items-center justify-center border-b border-slate-200 text-[9px] md:text-[10px] font-medium text-slate-500 p-1 text-center ${isLunch ? 'bg-indigo-50 text-indigo-700 font-bold' : ''}`}>
                                         {slot}
                                     </div>
                                 );
@@ -496,7 +588,7 @@ export default function SquareScheduleMaker() {
                                     <div key={dayIdx} className="flex flex-col h-full bg-white relative">
                                         {/* Lunch Strip Overlay (behind content) */}
                                         <div
-                                            className="absolute w-full bg-orange-100/50 pointer-events-none border-y border-orange-200/50 flex items-center justify-center"
+                                            className="absolute w-full bg-indigo-50/50 pointer-events-none border-y border-indigo-200/50 flex items-center justify-center"
                                             style={{ top: `${(4 / 9) * 100}%`, height: `${(1 / 9) * 100}%`, zIndex: 0 }}
                                         />
 
@@ -530,7 +622,9 @@ export default function SquareScheduleMaker() {
                                                             {block.courses.map((c, idx) => (
                                                                 <div key={idx} className={idx > 0 ? "mt-2 pt-2 border-t border-red-200 w-full" : "w-full"}>
                                                                     <div className="font-bold text-[10px] md:text-xs leading-tight">{c.name}</div>
+                                                                    {c.instructor && <div className="text-[8px] md:text-[9px] mt-0.5 opacity-70 italic">{c.instructor}</div>}
                                                                     {c.classroom && <div className="text-[9px] mt-0.5 opacity-80">{c.classroom}</div>}
+                                                                    {c.description && <div className="text-[8px] md:text-[9px] mt-0.5 opacity-60">{c.description}</div>}
                                                                     {(block.endSlotIndex - block.startSlotIndex) * 1 !== c.durationSlots && (
                                                                         <div className="text-[9px] mt-0.5 font-mono opacity-70">
                                                                             {TIME_SLOTS[c.startSlotIndex].split('-')[0]} - {TIME_SLOTS[c.startSlotIndex + c.durationSlots - 1].split('-')[1]}
@@ -555,7 +649,7 @@ export default function SquareScheduleMaker() {
                             <div className="flex items-center gap-1"><div className="w-3 h-3 bg-sky-100 border border-sky-300 rounded"></div> Ders</div>
                             <div className="flex items-center gap-1"><div className="w-3 h-3 bg-amber-100 border border-amber-300 rounded"></div> Alttan</div>
                             <div className="flex items-center gap-1"><div className="w-3 h-3 bg-red-100 border border-red-300 rounded"></div> Çakışma</div>
-                            <div className="flex items-center gap-1"><div className="w-3 h-3 bg-orange-100 border border-orange-200 rounded"></div> Öğle Arası</div>
+                            <div className="flex items-center gap-1"><div className="w-3 h-3 bg-indigo-100 border border-indigo-200 rounded"></div> Öğle Arası</div>
                         </div>
                         <div className="text-[10px] text-slate-400 font-mono">
                             Generated by SquareSchedule

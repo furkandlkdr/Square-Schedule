@@ -1,1 +1,7 @@
 @import "tailwindcss";
+/* Override Tailwind v4's oklch colors with RGB for html2canvas compatibility */
+@layer utilities {
+  * {
+    color-scheme: light dark;
+  }
+}
