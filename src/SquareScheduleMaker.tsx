@@ -555,7 +555,7 @@ export default function SquareScheduleMaker() {
                                         className="w-full p-2 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 dark:text-slate-100 rounded"
                                         value={formStartSlot} onChange={e => setFormStartSlot(Number(e.target.value))}
                                     >
-                                        {TIME_SLOTS.map((t, i) => <option key={i} value={i}>{t.split('-')[0]}</option>)}
+                                        {TIME_SLOTS.map((t, i) => <option key={i} value={i} disabled={i === 4}>{t.split('-')[0]}</option>)}
                                     </select>
                                 </div>
 
@@ -714,7 +714,7 @@ export default function SquareScheduleMaker() {
                                 {TIME_SLOTS.map((slot, i) => {
                                     const isLunch = i === 4;
                                     return (
-                                        <div key={i} className={`flex-1 flex items-center justify-center border-b border-slate-200 dark:border-slate-800 text-[10px] md:text-xs font-semibold text-slate-600 dark:text-slate-400 p-1 text-center ${isLunch ? 'bg-indigo-50 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300 font-bold' : ''}`}>
+                                        <div key={i} className={`flex-1 flex items-center justify-center border-b border-slate-200 dark:border-slate-800 text-[10px] md:text-xs font-semibold text-slate-600 dark:text-slate-400 p-1 text-center ${isLunch ? 'bg-indigo-50 dark:bg-slate-700/50 text-indigo-700 dark:text-slate-300 font-bold' : ''}`}>
                                             {slot}
                                         </div>
                                     );
@@ -730,7 +730,7 @@ export default function SquareScheduleMaker() {
                                         <div key={dayIdx} className="flex flex-col h-full bg-white dark:bg-slate-800 relative">
                                             {/* Lunch Strip Overlay (behind content) */}
                                             <div
-                                                className="absolute w-full bg-indigo-50/50 pointer-events-none border-y border-indigo-200/50 flex items-center justify-center"
+                                                className="absolute w-full bg-indigo-50/50 dark:bg-slate-700/50 pointer-events-none border-y border-indigo-200/50 dark:border-slate-600/50 flex items-center justify-center"
                                                 style={{ top: `${(4 / 9) * 100}%`, height: `${(1 / 9) * 100}%`, zIndex: 0 }}
                                             />
 
@@ -788,10 +788,10 @@ export default function SquareScheduleMaker() {
                         {/* Footer Legend */}
                         <div className="h-auto min-h-16 bg-white dark:bg-slate-800 border-t border-slate-200 dark:border-slate-700 flex flex-col md:flex-row items-start md:items-center justify-between px-4 md:px-8 py-4 shrink-0 gap-3 md:gap-6">
                             <div className="flex flex-wrap items-center gap-3 md:gap-6 text-sm font-semibold text-slate-600 dark:text-slate-400">
-                                <div className="flex items-center gap-2"><div className="w-5 h-5 bg-sky-100 border border-sky-300 rounded"></div> Ders</div>
-                                <div className="flex items-center gap-2"><div className="w-5 h-5 bg-amber-100 border border-amber-300 rounded"></div> Alttan</div>
-                                <div className="flex items-center gap-2"><div className="w-5 h-5 bg-red-100 border border-red-300 rounded"></div> Çakışma</div>
-                                <div className="flex items-center gap-2"><div className="w-5 h-5 bg-indigo-100 border border-indigo-200 rounded"></div> Öğle Arası</div>
+                                <div className="flex items-center gap-2"><div className="w-5 h-5 bg-sky-100 dark:bg-blue-900/50 border border-sky-300 dark:border-blue-700 rounded"></div> Ders</div>
+                                <div className="flex items-center gap-2"><div className="w-5 h-5 bg-amber-100 dark:bg-amber-900/50 border border-amber-300 dark:border-amber-700 rounded"></div> Alttan</div>
+                                <div className="flex items-center gap-2"><div className="w-5 h-5 bg-red-100 dark:bg-red-900/50 border border-red-300 dark:border-red-700 rounded"></div> Çakışma</div>
+                                <div className="flex items-center gap-2"><div className="w-5 h-5 bg-indigo-100 dark:bg-slate-700/50 border border-indigo-200 dark:border-slate-600 rounded"></div> Öğle Arası</div>
                             </div>
                             {activeProfile.classroomLegend && (
                                 <div className="flex-1 text-[10px] md:text-xs text-slate-700 dark:text-slate-300 max-w-sm">
