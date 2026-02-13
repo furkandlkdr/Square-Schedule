@@ -9,8 +9,4 @@ export default {
     extend: {},
   },
   plugins: [],
-  // Force RGB color format instead of oklch to fix html2canvas compatibility
-  corePlugins: {
-    preflight: true,
-  },
 } satisfies Config

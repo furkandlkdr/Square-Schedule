@@ -92,16 +92,21 @@ export default function SquareScheduleMaker() {
     const [formClassroom, setFormClassroom] = useState('');
     const [formDesc, setFormDesc] = useState('');
     const [formIsRetake, setFormIsRetake] = useState(false);
-    const [classroomLegend, setClassroomLegend] = useState('');
+
+    const [scheduleTitle, setScheduleTitle] = useState('');
+    const [includeTitleInSquare, setIncludeTitleInSquare] = useState(true);
+
 
     const canvasRef = useRef<HTMLDivElement>(null);
+
+    const activeProfile = profiles.find(p => p.id === activeProfileId) || profiles[0] || INITIAL_PROFILE;
 
     // Theme: default to user's interface preference unless user has saved a choice
     const [theme, setTheme] = useState<'light' | 'dark'>(() => {
         try {
             const stored = localStorage.getItem('theme');
             if (stored === 'light' || stored === 'dark') return stored;
-        } catch (e) {}
+        } catch (e) { }
         if (typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
             return 'dark';
         }
@@ -111,13 +116,13 @@ export default function SquareScheduleMaker() {
     useEffect(() => {
         try {
             document.documentElement.setAttribute('data-theme', theme);
-        } catch (e) {}
+        } catch (e) { }
     }, [theme]);
 
     const toggleTheme = () => {
         const next = theme === 'dark' ? 'light' : 'dark';
         setTheme(next);
-        try { localStorage.setItem('theme', next); } catch (e) {}
+        try { localStorage.setItem('theme', next); } catch (e) { }
     };
 
     // --- Effects ---
@@ -144,11 +149,7 @@ export default function SquareScheduleMaker() {
         }
     }, [profiles]);
 
-    useEffect(() => {
-        if (activeProfile) {
-            setClassroomLegend(activeProfile.classroomLegend || '');
-        }
-    }, [activeProfileId, profiles]);
+
 
     useEffect(() => {
         const checkMobile = () => {
@@ -159,7 +160,7 @@ export default function SquareScheduleMaker() {
         return () => window.removeEventListener('resize', checkMobile);
     }, []);
 
-    const activeProfile = profiles.find(p => p.id === activeProfileId) || profiles[0] || INITIAL_PROFILE;
+
 
     // --- Actions ---
 
@@ -249,7 +250,7 @@ export default function SquareScheduleMaker() {
     };
 
     const updateClassroomLegend = (legend: string) => {
-        setClassroomLegend(legend);
+
         const updatedProfiles = profiles.map(p =>
             p.id === activeProfileId ? { ...p, classroomLegend: legend } : p
         );
@@ -264,9 +265,10 @@ export default function SquareScheduleMaker() {
                 pixelRatio: 2,
                 backgroundColor: theme === 'dark' ? '#334155' : '#ffffff'
             });
-            
+
             const link = document.createElement('a');
-            link.download = `${activeProfile.profileName.replace(/\s+/g, '_')}_Schedule.png`;
+            const fileName = scheduleTitle ? scheduleTitle.replace(/\s+/g, '_') : activeProfile.profileName.replace(/\s+/g, '_');
+            link.download = `${fileName}_Schedule.png`;
             link.href = dataUrl;
             link.click();
         } catch (err) {
@@ -381,8 +383,8 @@ export default function SquareScheduleMaker() {
     // --- Rendering ---
 
     return (
-        <div className="min-h-screen bg-slate-50 text-slate-800 font-sans flex flex-col">
-            
+        <div className="min-h-screen bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-100 font-sans flex flex-col">
+
             {/* Mobile Warning Banner */}
             {isMobile && !dismissMobileWarning && (
                 <div className="bg-amber-50 border-b border-amber-200 px-4 py-3 flex items-start gap-3 md:hidden">
@@ -399,27 +401,25 @@ export default function SquareScheduleMaker() {
                     </div>
                 </div>
             )}
-            
+
             {/* MOBILE TAB NAVIGATION */}
             <div className="md:hidden sticky top-0 z-20 bg-white border-b border-slate-200 shadow-sm">
                 <div className="flex">
                     <button
                         onClick={() => setMobileTab('edit')}
-                        className={`flex-1 py-3 px-4 font-medium text-sm transition-colors ${
-                            mobileTab === 'edit' 
-                                ? 'bg-blue-600 text-white' 
-                                : 'bg-slate-50 text-slate-600 hover:bg-slate-100'
-                        }`}
+                        className={`flex-1 py-3 px-4 font-medium text-sm transition-colors ${mobileTab === 'edit'
+                            ? 'bg-blue-600 text-white'
+                            : 'bg-slate-50 text-slate-600 hover:bg-slate-100'
+                            }`}
                     >
                         ✏️ Düzenle
                     </button>
                     <button
                         onClick={() => setMobileTab('preview')}
-                        className={`flex-1 py-3 px-4 font-medium text-sm transition-colors ${
-                            mobileTab === 'preview' 
-                                ? 'bg-blue-600 text-white' 
-                                : 'bg-slate-50 text-slate-600 hover:bg-slate-100'
-                        }`}
+                        className={`flex-1 py-3 px-4 font-medium text-sm transition-colors ${mobileTab === 'preview'
+                            ? 'bg-blue-600 text-white'
+                            : 'bg-slate-50 text-slate-600 hover:bg-slate-100'
+                            }`}
                     >
                         👁️ Önizleme
                     </button>
@@ -428,357 +428,386 @@ export default function SquareScheduleMaker() {
 
             <div className="flex-1 flex flex-col md:flex-row overflow-hidden">
                 {/* SIDEBAR */}
-                <div className={`w-full md:w-80 bg-white border-r border-slate-200 flex flex-col md:h-screen md:sticky md:top-0 z-10 shadow-lg overflow-hidden ${
-                    mobileTab === 'preview' ? 'hidden md:flex' : ''
-                }`}>
-                <div className="p-5 border-b border-slate-100 shrink-0">
-                    <div className="flex items-center justify-between mb-4">
-                        <h1 className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-indigo-600">
-                            Ders Programı
-                        </h1>
-                        <button onClick={toggleTheme} aria-label="Toggle theme" className="p-2 rounded-md hover:bg-slate-100 transition-colors">
-                            {theme === 'dark' ? <Sun className="w-5 h-5 text-yellow-400" /> : <Moon className="w-5 h-5 text-slate-600" />}
+                <div className={`w-full md:w-80 bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 flex flex-col md:h-screen md:sticky md:top-0 z-10 shadow-lg overflow-hidden ${mobileTab === 'preview' ? 'hidden md:flex' : ''
+                    }`}>
+                    <div className="p-5 border-b border-slate-100 shrink-0">
+                        <div className="flex items-center justify-between mb-4">
+                            <h1 className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-indigo-600">
+                                Ders Programı
+                            </h1>
+                            <button onClick={toggleTheme} aria-label="Toggle theme" className="p-2 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
+                                {theme === 'dark' ? <Sun className="w-5 h-5 text-yellow-400" /> : <Moon className="w-5 h-5 text-slate-600" />}
+                            </button>
+                        </div>
+
+                        {/* Profile Selector */}
+                        <div className="relative">
+                            <button
+                                onClick={() => setShowProfileMenu(!showProfileMenu)}
+                                className="w-full flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg hover:border-blue-400 transition-colors"
+                            >
+                                <div className="flex items-center gap-2">
+                                    <Monitor className="w-4 h-4 text-slate-500 dark:text-slate-400" />
+                                    <span className="font-medium text-slate-700 dark:text-slate-200">{activeProfile.profileName}</span>
+                                </div>
+                                <ChevronDown className="w-4 h-4 text-slate-400 dark:text-slate-500" />
+                            </button>
+
+                            {showProfileMenu && (
+                                <div className="absolute top-full left-0 w-full mt-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg shadow-xl overflow-hidden z-20">
+                                    {profiles.map(p => (
+                                        <div
+                                            key={p.id}
+                                            onClick={() => {
+                                                if (editingProfileId !== p.id) {
+                                                    setActiveProfileId(p.id);
+                                                    setShowProfileMenu(false);
+                                                }
+                                            }}
+                                            className={`p-3 flex items-center justify-between gap-2 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-700/50 ${activeProfileId === p.id ? 'bg-blue-50 text-blue-700 dark:bg-blue-900/20 dark:text-blue-400' : 'text-slate-700 dark:text-slate-300'}`}
+                                        >
+                                            {editingProfileId === p.id ? (
+                                                <input
+                                                    type="text"
+                                                    value={editingProfileName}
+                                                    onChange={(e) => setEditingProfileName(e.target.value)}
+                                                    onBlur={() => saveProfileName(p.id)}
+                                                    onKeyDown={(e) => {
+                                                        if (e.key === 'Enter') saveProfileName(p.id);
+                                                        if (e.key === 'Escape') cancelEditProfile();
+                                                    }}
+                                                    onClick={(e) => e.stopPropagation()}
+                                                    autoFocus
+                                                    className="flex-1 px-2 py-1 border border-blue-400 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-900 dark:text-slate-100 dark:border-blue-500"
+                                                />
+                                            ) : (
+                                                <span className="flex-1">{p.profileName}</span>
+                                            )}
+                                            <div className="flex items-center gap-1">
+                                                <button
+                                                    onClick={(e) => startEditProfile(p.id, p.profileName, e)}
+                                                    className="text-slate-400 hover:text-blue-500 dark:text-slate-500 dark:hover:text-blue-400"
+                                                >
+                                                    <Edit2 className="w-4 h-4" />
+                                                </button>
+                                                <button onClick={(e) => deleteProfile(p.id, e)} className="text-slate-400 hover:text-red-500 dark:text-slate-500 dark:hover:text-red-400">
+                                                    <Trash2 className="w-4 h-4" />
+                                                </button>
+                                            </div>
+                                        </div>
+                                    ))}
+                                    <button
+                                        onClick={addProfile}
+                                        className="w-full p-3 text-left text-sm font-medium text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 flex items-center gap-2 border-t border-slate-100 dark:border-slate-700"
+                                    >
+                                        <Plus className="w-4 h-4" /> Yeni Profil
+                                    </button>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+
+                    {/* Sidebar Tabs - Add Course and Course List */}
+                    <div className="flex border-b border-slate-100 dark:border-slate-800">
+                        <button
+                            onClick={() => setSidebarTab('add')}
+                            className={`flex-1 py-3 px-4 font-medium text-sm transition-colors ${sidebarTab === 'add'
+                                ? 'border-b-2 border-blue-600 text-blue-600 bg-blue-50 dark:bg-blue-900/20 dark:text-blue-400 dark:border-blue-400'
+                                : 'text-slate-600 hover:bg-slate-50 dark:text-slate-400 dark:hover:bg-slate-800'
+                                }`}
+                        >
+                            ➕ Ekle
+                        </button>
+                        <button
+                            onClick={() => setSidebarTab('list')}
+                            className={`flex-1 py-3 px-4 font-medium text-sm transition-colors ${sidebarTab === 'list'
+                                ? 'border-b-2 border-blue-600 text-blue-600 bg-blue-50 dark:bg-blue-900/20 dark:text-blue-400 dark:border-blue-400'
+                                : 'text-slate-600 hover:bg-slate-50 dark:text-slate-400 dark:hover:bg-slate-800'
+                                }`}
+                        >
+                            📚 Dersler ({activeProfile.courses.length})
                         </button>
                     </div>
 
-                    {/* Profile Selector */}
-                    <div className="relative">
-                        <button
-                            onClick={() => setShowProfileMenu(!showProfileMenu)}
-                            className="w-full flex items-center justify-between p-3 bg-slate-50 border border-slate-200 rounded-lg hover:border-blue-400 transition-colors"
-                        >
-                            <div className="flex items-center gap-2">
-                                <Monitor className="w-4 h-4 text-slate-500" />
-                                <span className="font-medium">{activeProfile.profileName}</span>
+                    {/* Add Course Form */}
+                    <div className={`p-5 space-y-4 shrink-0 overflow-y-auto ${sidebarTab === 'add' ? '' : 'hidden'}`}>
+                        <form onSubmit={addCourse} className="space-y-3">
+                            <div>
+                                <input
+                                    placeholder="Ders Adı"
+                                    className="w-full p-2 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 dark:text-slate-100 rounded focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                                    value={formName} onChange={e => setFormName(e.target.value)} required
+                                />
                             </div>
-                            <ChevronDown className="w-4 h-4 text-slate-400" />
-                        </button>
 
-                        {showProfileMenu && (
-                            <div className="absolute top-full left-0 w-full mt-2 bg-white border border-slate-200 rounded-lg shadow-xl overflow-hidden z-20">
-                                {profiles.map(p => (
-                                    <div
-                                        key={p.id}
-                                        onClick={() => { 
-                                            if (editingProfileId !== p.id) {
-                                                setActiveProfileId(p.id); 
-                                                setShowProfileMenu(false); 
-                                            }
-                                        }}
-                                        className={`p-3 flex items-center justify-between gap-2 cursor-pointer hover:bg-slate-50 ${activeProfileId === p.id ? 'bg-blue-50 text-blue-700' : ''}`}
+                            <div className="grid grid-cols-2 gap-2">
+                                <div className="col-span-2">
+                                    <select
+                                        className="w-full p-2 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 dark:text-slate-100 rounded"
+                                        value={formDay} onChange={e => setFormDay(Number(e.target.value))}
                                     >
-                                        {editingProfileId === p.id ? (
-                                            <input
-                                                type="text"
-                                                value={editingProfileName}
-                                                onChange={(e) => setEditingProfileName(e.target.value)}
-                                                onBlur={() => saveProfileName(p.id)}
-                                                onKeyDown={(e) => {
-                                                    if (e.key === 'Enter') saveProfileName(p.id);
-                                                    if (e.key === 'Escape') cancelEditProfile();
-                                                }}
-                                                onClick={(e) => e.stopPropagation()}
-                                                autoFocus
-                                                className="flex-1 px-2 py-1 border border-blue-400 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                            />
-                                        ) : (
-                                            <span className="flex-1">{p.profileName}</span>
-                                        )}
-                                        <div className="flex items-center gap-1">
-                                            <button 
-                                                onClick={(e) => startEditProfile(p.id, p.profileName, e)} 
-                                                className="text-slate-400 hover:text-blue-500"
-                                            >
-                                                <Edit2 className="w-4 h-4" />
-                                            </button>
-                                            <button onClick={(e) => deleteProfile(p.id, e)} className="text-slate-400 hover:text-red-500">
+                                        {DAYS.map((d, i) => <option key={i} value={i}>{d}</option>)}
+                                    </select>
+                                </div>
+
+                                <div className="col-span-1">
+                                    <select
+                                        className="w-full p-2 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 dark:text-slate-100 rounded"
+                                        value={formStartSlot} onChange={e => setFormStartSlot(Number(e.target.value))}
+                                    >
+                                        {TIME_SLOTS.map((t, i) => <option key={i} value={i}>{t.split('-')[0]}</option>)}
+                                    </select>
+                                </div>
+
+                                <div className="col-span-1 flex items-center gap-2">
+                                    <span className="text-xs text-slate-400">Süre:</span>
+                                    <input
+                                        type="number" min="1" max="9"
+                                        className="w-full p-2 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 dark:text-slate-100 rounded"
+                                        value={formDuration} onChange={e => setFormDuration(Number(e.target.value))}
+                                    />
+                                </div>
+                            </div>
+
+                            <input
+                                placeholder="Eğitmen (Opsiyonel)"
+                                className="w-full p-2 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 dark:text-slate-100 rounded"
+                                value={formInstructor} onChange={e => setFormInstructor(e.target.value)}
+                            />
+
+                            <input
+                                placeholder="Derslik (Opsiyonel)"
+                                className="w-full p-2 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 dark:text-slate-100 rounded"
+                                value={formClassroom} onChange={e => setFormClassroom(e.target.value)}
+                            />
+
+                            <input
+                                placeholder="Açıklama (Opsiyonel)"
+                                className="w-full p-2 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 dark:text-slate-100 rounded"
+                                value={formDesc} onChange={e => setFormDesc(e.target.value)}
+                            />
+
+                            <label className="flex items-center gap-2 p-2 border border-slate-200 rounded cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800">
+                                <input
+                                    type="checkbox"
+                                    checked={formIsRetake}
+                                    onChange={e => setFormIsRetake(e.target.checked)}
+                                    className="rounded text-amber-500 focus:ring-amber-500"
+                                />
+                                <span className="text-sm font-medium">Alttan Ders</span>
+                            </label>
+
+                            <button type="submit" className="w-full py-2 bg-blue-600 hover:bg-blue-700 text-white rounded font-medium transition-colors flex items-center justify-center gap-2 shadow-sm">
+                                <Plus className="w-4 h-4" /> Ekle
+                            </button>
+                        </form>
+
+                        {/* Classroom Legend Input */}
+                        <div className="mt-6 pt-4 border-t border-slate-200">
+                            <h3 className="text-sm font-semibold text-slate-400 uppercase tracking-wider mb-2">Derslik Açıklamaları</h3>
+                            <textarea
+                                placeholder="Örnek:&#10;A101: Ana Bina 1. Kat&#10;B203: Yeni Bina 2. Kat"
+                                className="w-full p-2 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 dark:text-slate-100 rounded text-xs resize-none focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                                rows={4}
+                                value={activeProfile.classroomLegend || ''}
+                                onChange={(e) => updateClassroomLegend(e.target.value)}
+                            />
+                            <p className="text-xs text-slate-400 mt-1">Her satırda "Kod: Açıklama" formatında yazın</p>
+                        </div>
+                    </div>
+
+                    {/* General Settings: Title */}
+                    <div className={`p-5 space-y-4 shrink-0 overflow-y-auto ${sidebarTab === 'add' ? '' : 'hidden'} border-t border-slate-200`}>
+                        <h3 className="text-sm font-semibold text-slate-400 uppercase tracking-wider mb-2">Program Başlığı</h3>
+                        <input
+                            placeholder="Program Başlığı (Örn: 2024 Güz)"
+                            className="w-full p-2 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 dark:text-slate-100 rounded focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                            value={scheduleTitle}
+                            onChange={e => setScheduleTitle(e.target.value)}
+                        />
+                        <label className="flex items-center gap-2 p-2 border border-slate-200 rounded cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800 mt-2">
+                            <input
+                                type="checkbox"
+                                checked={includeTitleInSquare}
+                                onChange={e => setIncludeTitleInSquare(e.target.checked)}
+                                className="rounded text-blue-500 focus:ring-blue-500"
+                            />
+                            <span className="text-sm font-medium dark:text-slate-300">Başlığı Kareye Dahil Et</span>
+                        </label>
+                        <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">
+                            Seçili ise: Tüm görsel kare olur.<br />
+                            Değilse: Program kare kalır, başlık üste eklenir.
+                        </p>
+                    </div>
+
+                    {/* Course List Wrapper */}
+                    <div className={`flex-1 overflow-y-auto p-5 min-h-0 ${sidebarTab === 'list' ? '' : 'hidden'}`}>
+                        <div className="space-y-2">
+                            {activeProfile.courses.length === 0 ? (
+                                <div className="text-center py-10 text-slate-400 dark:text-slate-500">
+                                    <div className="mb-2"><List className="w-8 h-8 mx-auto opacity-20" /></div>
+                                    <p className="text-sm">Henüz ders eklenmedi.</p>
+                                </div>
+                            ) : (
+                                activeProfile.courses.map(c => (
+                                    <div key={c.id} className="p-3 bg-white dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-lg shadow-sm hover:shadow-md dark:hover:bg-slate-800 transition-all group relative">
+                                        <div className="flex justify-between items-start gap-2">
+                                            <div className="flex-1 min-w-0">
+                                                <h3 className="font-semibold text-slate-800 dark:text-slate-200 text-sm">{c.name}</h3>
+                                                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">{DAYS[c.dayIndex]}, {TIME_SLOTS[c.startSlotIndex]}</p>
+                                                {c.instructor && <p className="text-xs text-slate-600 dark:text-slate-400 mt-1 italic">{c.instructor}</p>}
+                                                {c.classroom && <p className="text-xs text-slate-600 dark:text-slate-300 font-medium mt-1">{c.classroom}</p>}
+                                                {c.description && <p className="text-xs text-slate-500 dark:text-slate-500 mt-1">{c.description}</p>}
+                                                {c.isRetake && <p className="text-xs font-semibold text-amber-600 dark:text-amber-400 mt-1">Alttan Ders</p>}
+                                            </div>
+                                            <button onClick={() => removeCourse(c.id)} className="text-slate-300 dark:text-slate-600 hover:text-red-500 dark:hover:text-red-400 flex-shrink-0 transition-colors p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-700/50">
                                                 <Trash2 className="w-4 h-4" />
                                             </button>
                                         </div>
                                     </div>
-                                ))}
-                                <button
-                                    onClick={addProfile}
-                                    className="w-full p-3 text-left text-sm font-medium text-blue-600 hover:bg-blue-50 flex items-center gap-2 border-t border-slate-100"
-                                >
-                                    <Plus className="w-4 h-4" /> Yeni Profil
-                                </button>
-                            </div>
-                        )}
+                                ))
+                            )}
+                        </div>
                     </div>
                 </div>
 
-                {/* Sidebar Tabs - Add Course and Course List */}
-                <div className="flex border-b border-slate-100">
-                    <button
-                        onClick={() => setSidebarTab('add')}
-                        className={`flex-1 py-3 px-4 font-medium text-sm transition-colors ${
-                            sidebarTab === 'add'
-                                ? 'border-b-2 border-blue-600 text-blue-600 bg-blue-50'
-                                : 'text-slate-600 hover:bg-slate-50'
-                        }`}
-                    >
-                        ➕ Ekle
-                    </button>
-                    <button
-                        onClick={() => setSidebarTab('list')}
-                        className={`flex-1 py-3 px-4 font-medium text-sm transition-colors ${
-                            sidebarTab === 'list'
-                                ? 'border-b-2 border-blue-600 text-blue-600 bg-blue-50'
-                                : 'text-slate-600 hover:bg-slate-50'
-                        }`}
-                    >
-                        📚 Dersler ({activeProfile.courses.length})
-                    </button>
-                </div>
-
-                {/* Add Course Form */}
-                <div className={`p-5 space-y-4 shrink-0 overflow-y-auto ${sidebarTab === 'add' ? '' : 'hidden'}`}>
-                    <form onSubmit={addCourse} className="space-y-3">
-                        <div>
-                            <input
-                                placeholder="Ders Adı"
-                                className="w-full p-2 bg-slate-50 border border-slate-200 rounded focus:ring-2 focus:ring-blue-500 focus:outline-none"
-                                value={formName} onChange={e => setFormName(e.target.value)} required
-                            />
-                        </div>
-
-                        <div className="grid grid-cols-2 gap-2">
-                            <div className="col-span-2">
-                                <select
-                                    className="w-full p-2 bg-slate-50 border border-slate-200 rounded"
-                                    value={formDay} onChange={e => setFormDay(Number(e.target.value))}
-                                >
-                                    {DAYS.map((d, i) => <option key={i} value={i}>{d}</option>)}
-                                </select>
-                            </div>
-
-                            <div className="col-span-1">
-                                <select
-                                    className="w-full p-2 bg-slate-50 border border-slate-200 rounded"
-                                    value={formStartSlot} onChange={e => setFormStartSlot(Number(e.target.value))}
-                                >
-                                    {TIME_SLOTS.map((t, i) => <option key={i} value={i}>{t.split('-')[0]}</option>)}
-                                </select>
-                            </div>
-
-                            <div className="col-span-1 flex items-center gap-2">
-                                <span className="text-xs text-slate-400">Süre:</span>
-                                <input
-                                    type="number" min="1" max="9"
-                                    className="w-full p-2 bg-slate-50 border border-slate-200 rounded"
-                                    value={formDuration} onChange={e => setFormDuration(Number(e.target.value))}
-                                />
-                            </div>
-                        </div>
-
-                        <input
-                            placeholder="Eğitmen (Opsiyonel)"
-                            className="w-full p-2 bg-slate-50 border border-slate-200 rounded"
-                            value={formInstructor} onChange={e => setFormInstructor(e.target.value)}
-                        />
-
-                        <input
-                            placeholder="Derslik (Opsiyonel)"
-                            className="w-full p-2 bg-slate-50 border border-slate-200 rounded"
-                            value={formClassroom} onChange={e => setFormClassroom(e.target.value)}
-                        />
-
-                        <input
-                            placeholder="Açıklama (Opsiyonel)"
-                            className="w-full p-2 bg-slate-50 border border-slate-200 rounded"
-                            value={formDesc} onChange={e => setFormDesc(e.target.value)}
-                        />
-
-                        <label className="flex items-center gap-2 p-2 border border-slate-200 rounded cursor-pointer hover:bg-slate-50">
-                            <input
-                                type="checkbox"
-                                checked={formIsRetake}
-                                onChange={e => setFormIsRetake(e.target.checked)}
-                                className="rounded text-amber-500 focus:ring-amber-500"
-                            />
-                            <span className="text-sm font-medium">Alttan Ders</span>
-                        </label>
-
-                        <button type="submit" className="w-full py-2 bg-blue-600 hover:bg-blue-700 text-white rounded font-medium transition-colors flex items-center justify-center gap-2 shadow-sm">
-                            <Plus className="w-4 h-4" /> Ekle
+                {/* MAIN STAGE */}
+                <div className={`flex-1 bg-slate-100 dark:bg-slate-800 p-2 md:p-10 flex flex-col items-center overflow-y-auto ${mobileTab === 'edit' ? 'hidden md:flex' : ''
+                    }`}>
+                    <div className="mb-2 md:mb-6 flex gap-2 md:gap-4 sticky top-0 z-10 bg-slate-100 py-2">
+                        <button onClick={exportAsPng} className="px-4 md:px-6 py-2 bg-slate-800 text-white rounded-full shadow-lg hover:bg-slate-900 transition-transform hover:-translate-y-1 flex items-center gap-2 font-medium text-sm md:text-base">
+                            <Download className="w-4 h-4" /> PNG İndir
                         </button>
-                    </form>
-
-                    {/* Classroom Legend Input */}
-                    <div className="mt-6 pt-4 border-t border-slate-200">
-                        <h3 className="text-sm font-semibold text-slate-400 uppercase tracking-wider mb-2">Derslik Açıklamaları</h3>
-                        <textarea
-                            placeholder="Örnek:&#10;A101: Ana Bina 1. Kat&#10;B203: Yeni Bina 2. Kat"
-                            className="w-full p-2 bg-slate-50 border border-slate-200 rounded text-xs resize-none focus:ring-2 focus:ring-blue-500 focus:outline-none"
-                            rows={4}
-                            value={classroomLegend}
-                            onChange={(e) => updateClassroomLegend(e.target.value)}
-                        />
-                        <p className="text-xs text-slate-400 mt-1">Her satırda "Kod: Açıklama" formatında yazın</p>
                     </div>
-                </div>
 
-                {/* Course List Wrapper */}
-                <div className={`flex-1 overflow-y-auto p-5 min-h-0 ${sidebarTab === 'list' ? '' : 'hidden'}`}>
-                    <div className="space-y-2">
-                        {activeProfile.courses.length === 0 ? (
-                            <div className="text-center py-10 text-slate-400">
-                                <div className="mb-2"><List className="w-8 h-8 mx-auto opacity-20" /></div>
-                                <p className="text-sm">Henüz ders eklenmedi.</p>
+                    {/* CANVAS CONTAINER */}
+                    <div
+                        className={`w-full max-w-4xl bg-white dark:bg-slate-800 shadow-2xl relative overflow-hidden flex flex-col mb-4 ${includeTitleInSquare ? 'aspect-square' : ''}`}
+                        ref={canvasRef}
+                        data-export-canvas="true"
+                    >
+                        {/* Schedule Title */}
+                        {scheduleTitle && (
+                            <div className="w-full p-4 text-center bg-white dark:bg-slate-800 border-b border-slate-100 dark:border-slate-700 shrink-0">
+                                <h2 className="text-xl md:text-2xl font-bold text-slate-800 dark:text-slate-100 uppercase tracking-wide">{scheduleTitle}</h2>
                             </div>
-                        ) : (
-                            activeProfile.courses.map(c => (
-                                <div key={c.id} className="p-3 bg-slate-50 border border-slate-200 rounded shadow-sm hover:shadow-md transition-shadow group relative">
-                                    <div className="flex justify-between items-start gap-2">
-                                        <div className="flex-1 min-w-0">
-                                            <h3 className="font-semibold text-slate-800 text-sm">{c.name}</h3>
-                                            <p className="text-xs text-slate-500">{DAYS[c.dayIndex]}, {TIME_SLOTS[c.startSlotIndex]}</p>
-                                            {c.instructor && <p className="text-xs text-slate-600 mt-1 italic">{c.instructor}</p>}
-                                            {c.classroom && <p className="text-xs text-slate-600">{c.classroom}</p>}
-                                            {c.description && <p className="text-xs text-slate-600 mt-1">{c.description}</p>}
-                                            {c.isRetake && <p className="text-xs font-semibold text-amber-600 mt-1">Alttan Ders</p>}
-                                        </div>
-                                        <button onClick={() => removeCourse(c.id)} className="text-slate-300 hover:text-red-500 flex-shrink-0 transition-colors">
-                                            <Trash2 className="w-4 h-4" />
-                                        </button>
-                                    </div>
+                        )}
+
+                        {/* Header Row */}
+                        <div className="grid grid-cols-[80px_1fr_1fr_1fr_1fr_1fr] h-12 bg-slate-900 text-white shrink-0">
+                            <div className="font-bold flex items-center justify-center border-r border-slate-700 text-xs tracking-wider">SAAT</div>
+                            {DAYS.map(d => (
+                                <div key={d} className="font-bold flex items-center justify-center border-r border-slate-700 last:border-r-0 text-sm tracking-wide uppercase">
+                                    {d}
                                 </div>
-                            ))
-                        )}
-                    </div>
-                </div>
-            </div>
-
-            {/* MAIN STAGE */}
-            <div className={`flex-1 bg-slate-100 p-2 md:p-10 flex flex-col items-center overflow-y-auto ${
-                mobileTab === 'edit' ? 'hidden md:flex' : ''
-            }`}>
-                <div className="mb-2 md:mb-6 flex gap-2 md:gap-4 sticky top-0 z-10 bg-slate-100 py-2">
-                    <button onClick={exportAsPng} className="px-4 md:px-6 py-2 bg-slate-800 text-white rounded-full shadow-lg hover:bg-slate-900 transition-transform hover:-translate-y-1 flex items-center gap-2 font-medium text-sm md:text-base">
-                        <Download className="w-4 h-4" /> PNG İndir
-                    </button>
-                </div>
-
-                {/* CANVAS CONTAINER - ASPECT RATIO 1/1 */}
-                {/* We use a max-width to ensure it fits screen, but it will maintain square aspect */}
-                <div className="w-full max-w-4xl aspect-square bg-white shadow-2xl relative overflow-hidden flex flex-col mb-4" ref={canvasRef} data-export-canvas="true">
-
-                    {/* Header Row */}
-                    <div className="grid grid-cols-[80px_1fr_1fr_1fr_1fr_1fr] h-12 bg-slate-900 text-white shrink-0">
-                        <div className="font-bold flex items-center justify-center border-r border-slate-700 text-xs tracking-wider">SAAT</div>
-                        {DAYS.map(d => (
-                            <div key={d} className="font-bold flex items-center justify-center border-r border-slate-700 last:border-r-0 text-sm tracking-wide uppercase">
-                                {d}
-                            </div>
-                        ))}
-                    </div>
-
-                    {/* Grid Body */}
-                    {/* We use CSS grid for the main area. */}
-                    {/* 5 columns corresponding to DAYS */}
-                    {/* The time column is separate or part of grid? Let's make it a flex container with Time Col + 5 Col Grid */}
-
-                    <div className="flex-1 flex min-h-0">
-                        {/* Time Column */}
-                        <div className="w-[80px] bg-slate-50 border-r border-slate-200 flex flex-col shrink-0">
-                            {TIME_SLOTS.map((slot, i) => {
-                                const isLunch = i === 4;
-                                return (
-                                    <div key={i} className={`flex-1 flex items-center justify-center border-b border-slate-200 text-[9px] md:text-[10px] font-medium text-slate-500 p-1 text-center ${isLunch ? 'bg-indigo-50 text-indigo-700 font-bold' : ''}`}>
-                                        {slot}
-                                    </div>
-                                );
-                            })}
+                            ))}
                         </div>
 
-                        {/* Days Grid - 5 Columns */}
-                        <div className="flex-1 grid grid-cols-5 divide-x divide-slate-200">
-                            {DAYS.map((_, dayIdx) => {
-                                const blocks = getDayBlocks(dayIdx);
+                        {/* Grid Body */}
+                        {/* We use CSS grid for the main area. */}
+                        {/* 5 columns corresponding to DAYS */}
+                        {/* The time column is separate or part of grid? Let's make it a flex container with Time Col + 5 Col Grid */}
 
-                                return (
-                                    <div key={dayIdx} className="flex flex-col h-full bg-white relative">
-                                        {/* Lunch Strip Overlay (behind content) */}
-                                        <div
-                                            className="absolute w-full bg-indigo-50/50 pointer-events-none border-y border-indigo-200/50 flex items-center justify-center"
-                                            style={{ top: `${(4 / 9) * 100}%`, height: `${(1 / 9) * 100}%`, zIndex: 0 }}
-                                        />
+                        <div className="flex-1 flex min-h-0">
+                            {/* Time Column */}
+                            <div className="w-[80px] bg-slate-50 dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 flex flex-col shrink-0">
+                                {TIME_SLOTS.map((slot, i) => {
+                                    const isLunch = i === 4;
+                                    return (
+                                        <div key={i} className={`flex-1 flex items-center justify-center border-b border-slate-200 dark:border-slate-800 text-[10px] md:text-xs font-semibold text-slate-600 dark:text-slate-400 p-1 text-center ${isLunch ? 'bg-indigo-50 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300 font-bold' : ''}`}>
+                                            {slot}
+                                        </div>
+                                    );
+                                })}
+                            </div>
 
-                                        {blocks.map(block => {
-                                            const span = block.endSlotIndex - block.startSlotIndex;
-                                            const heightPct = (span / 9) * 100;
+                            {/* Days Grid - 5 Columns */}
+                            <div className={`flex-1 grid grid-cols-5 divide-x divide-slate-200 dark:divide-slate-700 ${!includeTitleInSquare && !scheduleTitle ? 'aspect-square' : (!includeTitleInSquare ? 'aspect-square' : '')}`}>
+                                {DAYS.map((_, dayIdx) => {
+                                    const blocks = getDayBlocks(dayIdx);
 
-                                            const isConflict = block.courses.length > 1;
-                                            const isRetake = block.courses.some(c => c.isRetake);
+                                    return (
+                                        <div key={dayIdx} className="flex flex-col h-full bg-white dark:bg-slate-800 relative">
+                                            {/* Lunch Strip Overlay (behind content) */}
+                                            <div
+                                                className="absolute w-full bg-indigo-50/50 pointer-events-none border-y border-indigo-200/50 flex items-center justify-center"
+                                                style={{ top: `${(4 / 9) * 100}%`, height: `${(1 / 9) * 100}%`, zIndex: 0 }}
+                                            />
 
-                                            return (
-                                                <div
-                                                    key={block.id}
-                                                    style={{ height: `${heightPct}%`, zIndex: 1 }}
-                                                    className="w-full relative border-b border-slate-100 box-border p-1"
-                                                >
-                                                    {block.type === 'course' && (
-                                                        <div className={`w-full h-full rounded-md p-1 md:p-2 border flex flex-col justify-center items-center text-center overflow-hidden
-                                 ${isConflict ? 'bg-red-50 border-red-200 text-red-800' :
-                                                                isRetake ? 'bg-amber-50 border-amber-200 text-amber-800' :
-                                                                    'bg-sky-50 border-sky-200 text-sky-800'
-                                                            }
+                                            {blocks.map(block => {
+                                                const span = block.endSlotIndex - block.startSlotIndex;
+                                                const heightPct = (span / 9) * 100;
+
+                                                const isConflict = block.courses.length > 1;
+                                                const isRetake = block.courses.some(c => c.isRetake);
+
+                                                return (
+                                                    <div
+                                                        key={block.id}
+                                                        style={{ height: `${heightPct}%`, zIndex: 1 }}
+                                                        className="w-full relative border-b border-slate-100 dark:border-slate-700 box-border p-1"
+                                                    >
+                                                        {block.type === 'course' && (
+                                                            <div className={`w-full h-full rounded-md p-1 md:p-2 border flex flex-col justify-center items-center text-center overflow-hidden
+                                 ${isConflict ? 'bg-red-50 dark:bg-red-900/40 border-red-200 dark:border-red-800 text-red-800 dark:text-red-200' :
+                                                                    isRetake ? 'bg-amber-50 dark:bg-amber-900/40 border-amber-200 dark:border-amber-800 text-amber-800 dark:text-amber-200' :
+                                                                        'bg-sky-50 dark:bg-blue-900/40 border-sky-200 dark:border-blue-800 text-sky-800 dark:text-blue-200'
+                                                                }
                                `}>
-                                                            {isConflict && (
-                                                                <div className="absolute top-1 right-1 text-red-400">
-                                                                    <AlertCircle className="w-3 h-3" />
-                                                                </div>
-                                                            )}
+                                                                {isConflict && (
+                                                                    <div className="absolute top-1 right-1 text-red-400">
+                                                                        <AlertCircle className="w-3 h-3" />
+                                                                    </div>
+                                                                )}
 
-                                                            {/* Content */}
-                                                            {block.courses.map((c, idx) => (
-                                                                <div key={idx} className={idx > 0 ? "mt-2 pt-2 border-t border-red-200 w-full" : "w-full"}>
-                                                                    <div className="font-bold text-[10px] md:text-xs leading-tight">{c.name}</div>
-                                                                    {c.instructor && <div className="text-[8px] md:text-[9px] mt-0.5 opacity-70 italic">{c.instructor}</div>}
-                                                                    {c.classroom && <div className="text-[9px] mt-0.5 opacity-80">{c.classroom}</div>}
-                                                                    {c.description && <div className="text-[8px] md:text-[9px] mt-0.5 opacity-60">{c.description}</div>}
-                                                                    {(block.endSlotIndex - block.startSlotIndex) * 1 !== c.durationSlots && (
-                                                                        <div className="text-[9px] mt-0.5 font-mono opacity-70">
-                                                                            {TIME_SLOTS[c.startSlotIndex].split('-')[0]} - {TIME_SLOTS[c.startSlotIndex + c.durationSlots - 1].split('-')[1]}
-                                                                        </div>
-                                                                    )}
-                                                                </div>
-                                                            ))}
-                                                        </div>
-                                                    )}
-                                                </div>
-                                            );
-                                        })}
-                                    </div>
-                                );
-                            })}
-                        </div>
-                    </div>
-
-                    {/* Footer Legend */}
-                    <div className="h-auto min-h-12 bg-white border-t border-slate-200 flex flex-col md:flex-row items-start md:items-center justify-between px-3 md:px-6 py-3 shrink-0 gap-2 md:gap-4">
-                        <div className="flex flex-wrap items-center gap-2 md:gap-4 text-xs font-medium text-slate-500">
-                            <div className="flex items-center gap-1"><div className="w-3 h-3 bg-sky-100 border border-sky-300 rounded"></div> Ders</div>
-                            <div className="flex items-center gap-1"><div className="w-3 h-3 bg-amber-100 border border-amber-300 rounded"></div> Alttan</div>
-                            <div className="flex items-center gap-1"><div className="w-3 h-3 bg-red-100 border border-red-300 rounded"></div> Çakışma</div>
-                            <div className="flex items-center gap-1"><div className="w-3 h-3 bg-indigo-100 border border-indigo-200 rounded"></div> Öğle Arası</div>
-                        </div>
-                        {classroomLegend && (
-                            <div className="flex-1 text-[9px] text-slate-600 max-w-xs">
-                                <div className="font-semibold mb-1">Derslikler:</div>
-                                {classroomLegend.split('\n').filter(line => line.trim()).map((line, i) => (
-                                    <div key={i} className="truncate">{line}</div>
-                                ))}
+                                                                {/* Content */}
+                                                                {block.courses.map((c, idx) => (
+                                                                    <div key={idx} className={idx > 0 ? "mt-2 pt-2 border-t border-red-200 w-full" : "w-full"}>
+                                                                        <div className="font-bold text-xs md:text-sm leading-tight text-slate-900 dark:text-slate-100">{c.name}</div>
+                                                                        {c.instructor && <div className="text-[10px] md:text-xs mt-0.5 font-semibold text-slate-700 dark:text-slate-300">{c.instructor}</div>}
+                                                                        {c.classroom && <div className="text-[10px] md:text-xs mt-0.5 font-bold text-slate-800 dark:text-slate-200">{c.classroom}</div>}
+                                                                        {c.description && <div className="text-[9px] md:text-[10px] mt-0.5 opacity-80 font-medium dark:text-slate-300">{c.description}</div>}
+                                                                        {(block.endSlotIndex - block.startSlotIndex) * 1 !== c.durationSlots && (
+                                                                            <div className="text-[9px] mt-0.5 font-mono opacity-70">
+                                                                                {TIME_SLOTS[c.startSlotIndex].split('-')[0]} - {TIME_SLOTS[c.startSlotIndex + c.durationSlots - 1].split('-')[1]}
+                                                                            </div>
+                                                                        )}
+                                                                    </div>
+                                                                ))}
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    );
+                                })}
                             </div>
-                        )}
-                        <div className="text-[10px] text-slate-400 font-mono whitespace-nowrap w-full md:w-auto text-center md:text-right">
-                            Made with ❤️ by <a href="https://furkan.software" target="_blank" rel="noopener noreferrer">Nafair</a>
                         </div>
-                    </div>
 
+                        {/* Footer Legend */}
+                        <div className="h-auto min-h-16 bg-white dark:bg-slate-800 border-t border-slate-200 dark:border-slate-700 flex flex-col md:flex-row items-start md:items-center justify-between px-4 md:px-8 py-4 shrink-0 gap-3 md:gap-6">
+                            <div className="flex flex-wrap items-center gap-3 md:gap-6 text-sm font-semibold text-slate-600 dark:text-slate-400">
+                                <div className="flex items-center gap-2"><div className="w-5 h-5 bg-sky-100 border border-sky-300 rounded"></div> Ders</div>
+                                <div className="flex items-center gap-2"><div className="w-5 h-5 bg-amber-100 border border-amber-300 rounded"></div> Alttan</div>
+                                <div className="flex items-center gap-2"><div className="w-5 h-5 bg-red-100 border border-red-300 rounded"></div> Çakışma</div>
+                                <div className="flex items-center gap-2"><div className="w-5 h-5 bg-indigo-100 border border-indigo-200 rounded"></div> Öğle Arası</div>
+                            </div>
+                            {activeProfile.classroomLegend && (
+                                <div className="flex-1 text-[10px] md:text-xs text-slate-700 dark:text-slate-300 max-w-sm">
+                                    <div className="font-bold mb-1 text-slate-800 dark:text-slate-200">Derslikler:</div>
+                                    {activeProfile.classroomLegend.split('\n').filter(line => line.trim()).map((line, i) => (
+                                        <div key={i} className="truncate font-medium text-slate-600 dark:text-slate-400">{line}</div>
+                                    ))}
+                                </div>
+                            )}
+                            <div className="text-xs md:text-sm text-slate-500 font-mono whitespace-nowrap w-full md:w-auto text-center md:text-right font-medium">
+                                Made with ❤️ by <a href="https://furkan.software" target="_blank" rel="noopener noreferrer" className="text-indigo-600 dark:text-indigo-400 hover:underline">Nafair</a>
+                            </div>
+                        </div>
+
+                    </div>
                 </div>
-            </div>
             </div>
         </div>
     );

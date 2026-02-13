@@ -1,7 +1,11 @@
 @import "tailwindcss";
+@variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
 /* Override Tailwind v4's oklch colors with RGB for html2canvas compatibility */
-@layer utilities {
-  * {
-    color-scheme: light dark;
+@layer base {
+  :root {
+    color-scheme: light;
+  }
+  :root[data-theme="dark"] {
+    color-scheme: dark;
   }
 }
