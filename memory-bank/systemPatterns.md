@@ -25,6 +25,11 @@ interface Course {
 interface ScheduleProfile {
   id, profileName, courses[], classroomLegend?
 }
+
+// Global UI State
+// - scheduleTitle: string
+// - includeTitleInSquare: boolean
+// - theme: 'light' | 'dark'
 ```
 
 Union-merge algorithm
@@ -40,10 +45,13 @@ Export pipeline
 - Theme-aware background color
 
 Theme system
-- CSS variables in App.css with [data-theme="dark"] overrides
+- CSS variables in `index.css` with `[data-theme="dark"]` overrides
 - System preference detection via window.matchMedia
 - User preference stored in localStorage
-- data-theme attribute set on document.documentElement
+- `data-theme` attribute set on document.documentElement
+- **Tailwind v4 Implementation**:
+  - `@variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));` used in `index.css`.
+  - Determines dark mode based on the attribute rather than system preference alone.
 
 Critical implementation paths
 - LocalStorage persistence on every profiles array change

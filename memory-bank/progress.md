@@ -13,6 +13,9 @@ What works
 - ✅ Instructor and description display in schedule grid
 - ✅ Inline profile name editing
 - ✅ Responsive sidebar and main canvas layout
+- ✅ **Schedule Title**: Custom title input with display toggle options.
+- ✅ **Dark Mode**: Complete UI overhaul for dark theme (Sidebar, Course List, Grid, Forms).
+- ✅ **Visual Polish**: Improved typography, spacing, and legend design.
 
 What's left
 - JSON import/export for schedule sharing (optional)
@@ -33,3 +36,5 @@ Evolution notes
 - **2026-02-10**: Orange lunch color too similar to amber retake → changed to indigo
 - **2026-02-10**: Added classroom legend after user request for better context in exports
 - **2026-02-10**: Inline editing for profile names improves UX over modal dialogs
+- **2026-02-13**: Finalized Dark Mode implementation using Tailwind v4 custom variants.
+- **2026-02-13**: Added Schedule Title and Aspect Ratio controls.

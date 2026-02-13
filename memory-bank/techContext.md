@@ -21,7 +21,7 @@ Important notes
 - Tailwind v4 uses oklch colors by default
 - html-to-image chosen over html2canvas for modern CSS color support
 - tailwind.config.ts created for custom configuration
-- App.css imported in main.tsx for dark theme overrides
+- `index.css` contains `@import "tailwindcss";` and custom `@variant dark` for theme support
 
 Constraints
 - Client-side only (no backend)
