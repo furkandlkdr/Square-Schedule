@@ -43,6 +43,9 @@ Export pipeline
 - canvasRef points to schedule grid container
 - 2x scale for high-resolution output
 - Theme-aware background color
+- **JSON Export**: Serializes active profile to JSON string and triggers download
+- **JSON Import**: Validates JSON structure, handles name collisions, and appends as new profile
+- **Toast Notifications**: Simple state-based notification system for user feedback
 
 Theme system
 - CSS variables in `index.css` with `[data-theme="dark"]` overrides

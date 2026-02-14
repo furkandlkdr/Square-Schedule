@@ -4,6 +4,7 @@ Current focus
 - All core features implemented and working
 - Refining UI/UX based on user feedback (Dark Mode, Visuals)
 - Verifying recent design changes and feature additions
+- Ensuring smooth import/export flow for schedules
 
 Recent changes
 - Added dark theme support with system preference detection and toggle button
@@ -17,9 +18,18 @@ Recent changes
 - **2026-02-13**: Added "Program Başlığı" (Schedule Title) feature with toggle for square aspect ratio.
 - **2026-02-13**: Enhanced visual hierarchy (font sizes, weights) and refined Lunch/Legend colors for dark mode.
 - **2026-02-13**: Disabled Lunch Break selection to prevent user error.
+- **2026-02-15**: Updated page title to "Square Schedule - A Dynamic Schedule Maker", and updated the vite.config.ts for subdomain, now its working in the home directory.
+- **2026-02-15**: Implemented "Export JSON" and "Import JSON" features for sharing schedules.
+- **2026-02-15**: Added Toast Notification system for better user feedback on actions.
+- **2026-02-15**: Added SEO meta tags, Open Graph tags, and updated README with screenshot/favicon.
+- **2026-02-15**: Localized README to support both Turkish and English.
+- **2026-02-15**: Localized README to support both Turkish and English.
+- **2026-02-15**: Implemented dynamic page title and meta description based on user language (Client-side).
+- **2026-02-15**: Updated branding with new 3D banner in README and social preview tags.
 
 Next steps
-- Potential JSON import/export for sharing schedules
+- [x] Potential JSON import/export for sharing schedules
+- Additional export formats if requested
 - Additional export formats if requested
 - Further accessibility improvements
 
@@ -30,6 +40,7 @@ Active decisions
 - Indigo color scheme for lunch breaks to avoid confusion with amber retake courses
 - **Dark Mode Strategy**: Use CSS variable `@variant dark` + `data-theme` attribute to reliably control Tailwind v4 dark mode.
 - **Aspect Ratio Control**: Allow users to toggle between a perfect square (forcing title inside) or a natural height (title on top) for exports.
+- **Import Strategy**: Add imported schedule as a new profile (with suffix if needed) to avoid overwriting existing data.
 
 Important patterns
 - State management kept local to SquareScheduleMaker component

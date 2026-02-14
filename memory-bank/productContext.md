@@ -12,6 +12,8 @@ How it should work
 - Changes persist locally; users can export/import JSON or export a printable format.
 - Users can toggle **Dark Mode** for comfortable viewing in low light.
 - Users can add a custom **Program Title** and choose whether to include it within the social-media-ready square export.
+- Users can **Import/Export** JSON files to backup or share their schedules.
+- **Visual Feedback**: Toast notifications confirm actions like saving or exporting.
 
 User experience goals
 - Minimal onboarding: immediate edit surface on first load.

@@ -9,7 +9,12 @@ import {
     AlertCircle,
     Sun,
     Moon,
-    Edit2
+    Edit2,
+    Upload,
+    FileJson,
+    X,
+    CheckCircle,
+    AlertTriangle
 } from 'lucide-react';
 import { toPng } from 'html-to-image';
 
@@ -96,8 +101,11 @@ export default function SquareScheduleMaker() {
     const [scheduleTitle, setScheduleTitle] = useState('');
     const [includeTitleInSquare, setIncludeTitleInSquare] = useState(true);
 
+    // Toast State
+    const [toast, setToast] = useState<{ message: string; type: 'success' | 'error'; show: boolean }>({ message: '', type: 'success', show: false });
 
     const canvasRef = useRef<HTMLDivElement>(null);
+    const fileInputRef = useRef<HTMLInputElement>(null);
 
     const activeProfile = profiles.find(p => p.id === activeProfileId) || profiles[0] || INITIAL_PROFILE;
 
@@ -158,6 +166,20 @@ export default function SquareScheduleMaker() {
         checkMobile();
         window.addEventListener('resize', checkMobile);
         return () => window.removeEventListener('resize', checkMobile);
+    }, []);
+
+    // Dynamic Metadata Localization
+    useEffect(() => {
+        const lang = navigator.language || 'tr-TR';
+        const isTurkish = lang.startsWith('tr');
+
+        if (isTurkish) {
+            document.title = "Ders Programı Oluşturucu | Square Schedule";
+            document.querySelector('meta[name="description"]')?.setAttribute("content", "Haftalık ders programınızı kolayca oluşturun, özelleştirin ve paylaşın. Modern ve şık bir ders programı hazırlama aracı.");
+        } else {
+            document.title = "Schedule Maker | Square Schedule";
+            document.querySelector('meta[name="description"]')?.setAttribute("content", "Create aesthetic, customizable weekly course schedules. Export as PNG or JSON. A modern schedule maker app.");
+        }
     }, []);
 
 
@@ -271,10 +293,79 @@ export default function SquareScheduleMaker() {
             link.download = `${fileName}_Schedule.png`;
             link.href = dataUrl;
             link.click();
+            showToastMessage("Görsel başarıyla indirildi.", "success");
         } catch (err) {
             console.error("Export failed", err);
-            alert("Dışa aktarım başarısız. Lütfen tekrar deneyin.");
+            showToastMessage("Dışa aktarım başarısız. Lütfen tekrar deneyin.", "error");
         }
+    };
+
+    const exportScheduleJson = () => {
+        const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(activeProfile, null, 2));
+        const downloadAnchorNode = document.createElement('a');
+        downloadAnchorNode.setAttribute("href", dataStr);
+        const fileName = scheduleTitle ? scheduleTitle.replace(/\s+/g, '_') : activeProfile.profileName.replace(/\s+/g, '_');
+        downloadAnchorNode.setAttribute("download", fileName + ".json");
+        document.body.appendChild(downloadAnchorNode); // required for firefox
+        downloadAnchorNode.click();
+        downloadAnchorNode.remove();
+        showToastMessage("Program başarıyla dışa aktarıldı (JSON).", "success");
+    };
+
+    const handleImportClick = () => {
+        fileInputRef.current?.click();
+    };
+
+    const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+        const fileObj = event.target.files && event.target.files[0];
+        if (!fileObj) {
+            return;
+        }
+
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            try {
+                const content = e.target?.result as string;
+                const parsed = JSON.parse(content);
+
+                // Basic Validation
+                if (!parsed.id || !parsed.profileName || !Array.isArray(parsed.courses)) {
+                    throw new Error("Geçersiz format");
+                }
+
+                // Generate new ID to avoid collision if importing same file
+                const newProfile = {
+                    ...parsed,
+                    id: generateId(), // Always new ID
+                    profileName: parsed.profileName
+                };
+
+                // Handle Name Duplication
+                let finalName = newProfile.profileName;
+                let counter = 1;
+                while (profiles.some(p => p.profileName === finalName)) {
+                    finalName = `${newProfile.profileName} (${counter})`;
+                    counter++;
+                }
+                newProfile.profileName = finalName;
+
+                setProfiles(prev => [...prev, newProfile]);
+                setActiveProfileId(newProfile.id);
+                showToastMessage("Program başarıyla içe aktarıldı.", "success");
+
+            } catch (err) {
+                console.error(err);
+                showToastMessage("Hata: Geçersiz veya bozuk dosya.", "error");
+            }
+            // Reset input
+            if (fileInputRef.current) fileInputRef.current.value = '';
+        };
+        reader.readAsText(fileObj);
+    };
+
+    const showToastMessage = (message: string, type: 'success' | 'error') => {
+        setToast({ message, type, show: true });
+        setTimeout(() => setToast(prev => ({ ...prev, show: false })), 3000);
     };
 
     // --- Algorithm: Union Merge ---
@@ -383,7 +474,18 @@ export default function SquareScheduleMaker() {
     // --- Rendering ---
 
     return (
-        <div className="min-h-screen bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-100 font-sans flex flex-col">
+        <div className="min-h-screen bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-100 font-sans flex flex-col relative">
+
+            {/* Toast Notification */}
+            {toast.show && (
+                <div className={`fixed bottom-5 right-5 z-50 px-4 py-3 rounded-lg shadow-xl flex items-center gap-3 animate-bounce-in transition-all duration-300 ${toast.type === 'success' ? 'bg-green-600 text-white' : 'bg-red-600 text-white'}`}>
+                    {toast.type === 'success' ? <CheckCircle className="w-5 h-5" /> : <AlertTriangle className="w-5 h-5" />}
+                    <span className="font-medium text-sm">{toast.message}</span>
+                    <button onClick={() => setToast(t => ({ ...t, show: false }))} className="ml-2 hover:bg-white/20 p-1 rounded">
+                        <X className="w-4 h-4" />
+                    </button>
+                </div>
+            )}
 
             {/* Mobile Warning Banner */}
             {isMobile && !dismissMobileWarning && (
@@ -674,10 +776,23 @@ export default function SquareScheduleMaker() {
                 {/* MAIN STAGE */}
                 <div className={`flex-1 bg-slate-100 dark:bg-slate-800 p-2 md:p-10 flex flex-col items-center overflow-y-auto ${mobileTab === 'edit' ? 'hidden md:flex' : ''
                     }`}>
-                    <div className="mb-2 md:mb-6 flex gap-2 md:gap-4 sticky top-0 z-10 bg-slate-100 py-2">
-                        <button onClick={exportAsPng} className="px-4 md:px-6 py-2 bg-slate-800 text-white rounded-full shadow-lg hover:bg-slate-900 transition-transform hover:-translate-y-1 flex items-center gap-2 font-medium text-sm md:text-base">
+                    <div className="mb-2 md:mb-6 flex gap-2 md:gap-4 sticky top-0 z-10 bg-slate-100 py-2 flex-wrap justify-center md:justify-start">
+                        <button onClick={exportAsPng} className="px-3 md:px-5 py-2 bg-slate-800 text-white rounded-full shadow-lg hover:bg-slate-900 transition-transform hover:-translate-y-1 flex items-center gap-2 font-medium text-xs md:text-sm">
                             <Download className="w-4 h-4" /> PNG İndir
                         </button>
+                        <button onClick={exportScheduleJson} className="px-3 md:px-5 py-2 bg-blue-600 text-white rounded-full shadow-lg hover:bg-blue-700 transition-transform hover:-translate-y-1 flex items-center gap-2 font-medium text-xs md:text-sm">
+                            <FileJson className="w-4 h-4" /> JSON Dışa Aktar
+                        </button>
+                        <button onClick={handleImportClick} className="px-3 md:px-5 py-2 bg-white text-slate-700 border border-slate-200 rounded-full shadow-lg hover:bg-slate-50 transition-transform hover:-translate-y-1 flex items-center gap-2 font-medium text-xs md:text-sm">
+                            <Upload className="w-4 h-4" /> JSON İçe Aktar
+                        </button>
+                        <input
+                            type="file"
+                            ref={fileInputRef}
+                            onChange={handleFileChange}
+                            accept=".json"
+                            style={{ display: 'none' }}
+                        />
                     </div>
 
                     {/* CANVAS CONTAINER */}
